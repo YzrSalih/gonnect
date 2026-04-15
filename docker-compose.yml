@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: gonnect_postgres
+    environment:
+      POSTGRES_USER: gonnect_user
+      POSTGRES_PASSWORD: gonnect_password
+      POSTGRES_DB: gonnect_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

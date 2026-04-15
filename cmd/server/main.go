@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/YzrSalih/gonnect/internal/chat"
+	"github.com/YzrSalih/gonnect/internal/database"
 	"github.com/gorilla/websocket"
 )
 
@@ -18,6 +21,8 @@ var upgrader = websocket.Upgrader{
 }
 
 func main() {
+	database.InitDB() // Initialize PostgreSQL
+
 	hub := chat.NewHub()
 	go hub.Run()
 
@@ -46,12 +51,32 @@ func serveWs(hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	}
 	
 	client := &chat.Client{
-		Hub:  hub, 
-		Conn: conn, 
-		Send: make(chan []byte, 256),
+		Hub:      hub, 
+		Conn:     conn, 
+		Send:     make(chan []byte, 256),
+		ID:       fmt.Sprintf("user_%d", time.Now().UnixNano()),
+		Username: "Anonymous",
 	}
 	
 	client.Hub.Register <- client
+
+	// Send recent messages to the newly connected client
+	recentMsgs, err := database.GetRecentMessages(50)
+	if err == nil {
+		for _, dbmsg := range recentMsgs {
+			chatMsg := chat.Message{
+				Type:      dbmsg.Type,
+				SenderID:  dbmsg.SenderID,
+				Username:  dbmsg.Username,
+				Content:   dbmsg.Content,
+				Timestamp: dbmsg.Timestamp,
+			}
+			payload, _ := json.Marshal(chatMsg)
+			client.Send <- payload
+		}
+	} else {
+		log.Println("Error fetching recent messages:", err)
+	}
 
 	// Start goroutines for reading and writing
 	go client.WritePump()
