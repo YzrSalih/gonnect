@@ -58,8 +58,8 @@ function App() {
   }, [messages]);
 
   useEffect(() => {
-    // Connect to Go Backend
-    const newSocket = new WebSocket("ws://localhost:8080/ws");
+    // Connect to Go Backend (dynamically resolves localhost or container host IP)
+    const newSocket = new WebSocket(`ws://${window.location.hostname}:8080/ws`);
     
     newSocket.onmessage = (event) => {
       try {

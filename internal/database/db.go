@@ -2,7 +2,9 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -12,8 +14,13 @@ var DB *sql.DB
 
 func InitDB() {
 	var err error
+	
+	host := os.Getenv("DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
 	// PostgreSQL connection string
-	connStr := "postgres://gonnect_user:gonnect_password@localhost:5432/gonnect_db?sslmode=disable"
+	connStr := fmt.Sprintf("postgres://gonnect_user:gonnect_password@%s:5432/gonnect_db?sslmode=disable", host)
 	
 	DB, err = sql.Open("postgres", connStr)
 	if err != nil {

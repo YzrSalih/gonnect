@@ -10,6 +10,34 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gonnect_user -d gonnect_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gonnect_backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db  # Instructs Go to connect to the 'db' container instead of 'localhost'
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gonnect_frontend
+    ports:
+      - "5173:80"   # Maps your standard Vite port (5173) to the Nginx container (80)
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
