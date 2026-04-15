@@ -30,6 +30,39 @@ func main() {
 		fmt.Fprintf(w, "Gonnect Server is running! Waiting for WebSocket connections...")
 	})
 
+	http.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Phone    string `json:"phone"`
+			Nickname string `json:"nickname"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		user, err := database.LoginOrRegister(req.Phone, req.Nickname)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(user)
+	})
+
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})
@@ -65,11 +98,13 @@ func serveWs(hub *chat.Hub, w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		for _, dbmsg := range recentMsgs {
 			chatMsg := chat.Message{
-				Type:      dbmsg.Type,
-				SenderID:  dbmsg.SenderID,
-				Username:  dbmsg.Username,
-				Content:   dbmsg.Content,
-				Timestamp: dbmsg.Timestamp,
+				Type:       dbmsg.Type,
+				SenderID:   dbmsg.SenderID,
+				Username:   dbmsg.Username,
+				TargetID:   dbmsg.TargetID,
+				TargetName: dbmsg.TargetName,
+				Content:    dbmsg.Content,
+				Timestamp:  dbmsg.Timestamp,
 			}
 			payload, _ := json.Marshal(chatMsg)
 			client.Send <- payload

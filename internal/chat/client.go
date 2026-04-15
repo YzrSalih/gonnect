@@ -61,7 +61,7 @@ func (c *Client) ReadPump() {
 		msg.Timestamp = time.Now()
 
 		// Save to the Database
-		err = database.SaveMessage(msg.Type, msg.SenderID, msg.Username, msg.Content, msg.Timestamp)
+		err = database.SaveMessage(msg.Type, msg.SenderID, msg.Username, msg.TargetID, msg.Content, msg.Timestamp)
 		if err != nil {
 			log.Println("Database error:", err)
 		}
